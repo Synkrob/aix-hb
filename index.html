@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AiX HUB - Live Dashboard</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: {
+                        darkBg: '#0a0d14',     
+                        cardBg: '#121620',     
+                        brandAccent: '#f56e0e', 
+                        glow: '#f56e0e40'      
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    
+    <!-- Particles.js for interactive background -->
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    
+    <style>
+        body { 
+            background-color: #0a0d14; 
+            color: #ffffff; 
+            overflow-x: hidden; 
+        }
+        
+        .aix-card {
+            background-color: #121620;
+            border: 2px solid rgba(245, 110, 14, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            border-radius: 1rem;
+        }
+        .aix-card:hover, .aix-card.active {
+            border-color: #f56e0e;
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 10px 25px -5px rgba(245, 110, 14, 0.4), 0 8px 10px -6px rgba(245, 110, 14, 0.1);
+        }
+        
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+        .delay-400 { animation-delay: 400ms; }
+
+        .hidden-content {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        .active-content {
+            display: block;
+            opacity: 1;
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+
+        /* Modal Styles */
+        #modal-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(10, 13, 20, 0.95);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        #modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #modal-container {
+            background-color: #121620;
+            border: 1px solid rgba(245, 110, 14, 0.4);
+            border-radius: 1.5rem;
+            width: 95%;
+            max-width: 1280px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            transform: scale(0.95);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 25px 50px -12px rgba(245, 110, 14, 0.25);
+        }
+        #modal-overlay.open #modal-container {
+            transform: scale(1);
+        }
+        #close-modal {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            cursor: pointer;
+            color: #94a3b8;
+            transition: color 0.2s;
+        }
+        #close-modal:hover {
+            color: #f56e0e;
+        }
+
+        .table-container::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .table-container::-webkit-scrollbar-thumb {
+            background-color: #f56e0e;
+            border-radius: 4px;
+        }
+
+        /* Standard custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #f56e0e;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="p-6 md:p-10 min-h-screen relative">
+    
+    <div class="fixed top-0 right-0 w-[800px] h-[800px] bg-[#f56e0e] rounded-full opacity-5 blur-[150px] pointer-events-none"></div>
+    <div class="fixed bottom-0 left-0 w-[600px] h-[600px] bg-blue-500 rounded-full opacity-[0.03] blur-[150px] pointer-events-none"></div>
+
+    <!-- Interactive Particle Background -->
+    <div id="particles-js" class="fixed inset-0 z-0 pointer-events-auto"></div>
+
+    <div class="max-w-7xl mx-auto relative z-10">
+        
+        <!-- Header/Hero Combined (Balanced Centered Title + Aligned Logo) -->
+        <div class="mb-4 opacity-0 animate-fade-in-up max-w-[1000px] mx-auto overflow-hidden">
+            <div class="flex items-center justify-between min-h-[85px]">
+                <!-- Left Column (Logo Aligned) -->
+                <div class="w-[120px] flex-shrink-0">
+                    <img src="logo.png" alt="AiX HUB Logo" class="h-[85px] w-auto object-contain ml-[30px]">
+                </div>
+                <!-- Center Column (Text perfectly centered to dashboard) -->
+                <div class="flex-grow text-center">
+                    <h2 class="text-2xl md:text-4xl lg:text-5xl font-extrabold mb-1 tracking-tight pr-[120px] whitespace-nowrap">Welcome to Ai Exchange Hub</h2>
+                    <p class="text-lg md:text-xl text-slate-400 font-medium pr-[120px] whitespace-nowrap">Where Ai Technology meets Business, Passion, and Future</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Slideshow Area (Live Embed + Click to Expand) -->
+        <div class="mb-8 opacity-0 animate-fade-in-up delay-200 w-full flex justify-center">
+            <div class="aix-card relative w-full lg:w-4/5 shadow-[0_0_60px_rgba(245,110,14,0.25)] overflow-hidden group cursor-pointer border border-[#f56e0e]/40" onclick="openModal('tab-slideshow')">
+                <!-- Expansion Hint Badge -->
+                <div class="absolute top-4 right-4 z-20 bg-darkBg/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#f56e0e]/40 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 flex items-center gap-2">
+                    <span class="text-xs font-bold text-white uppercase tracking-wider">Expand to Full Screen</span>
+                    <svg class="w-4 h-4 text-[#f56e0e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                </div>
+                
+                <div class="relative w-full overflow-hidden" style="padding-top: 56.25%;">
+                    <iframe 
+                        src="https://docs.google.com/presentation/d/e/2PACX-1vRTuEkQ6wa0hdssFOJ8U19QnEB2CadF_Vf22Tgx84FQj4XUOM_E1MIYsOkOSClaQ-igJBoryNmb2Hf0/embed?start=true&loop=true&delayms=10000" 
+                        frameborder="0" 
+                        class="absolute top-0 left-0 w-full h-full pointer-events-none" 
+                        allowfullscreen="true">
+                    </iframe>
+                </div>
+            </div>
+        </div>
+
+        <!-- Events Insights Section (Matched to Slideshow Width) -->
+        <div class="lg:w-4/5 mx-auto px-4">
+            
+            <!-- Main Insight Bar -->
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-[#121620]/50 p-3 rounded-2xl border border-slate-800 mb-3 opacity-0 animate-fade-in-up delay-300">
+                <!-- Branding/Status -->
+                <div class="flex items-center gap-3 flex-shrink-0">
+                    <img src="logo.png" alt="AiX HUB Logo" class="h-[60px] w-auto object-contain">
+                    <div class="hidden sm:block">
+                        <h3 class="text-xl font-bold tracking-tight">Events Insights</h3>
+                        <div class="flex items-center gap-2">
+                             <span class="relative flex h-2 w-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brandAccent opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-[#ea580c]"></span>
+                            </span>
+                            <span class="text-[10px] text-slate-400 font-medium uppercase tracking-widest">Live Feed</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs (Single Row) -->
+                <div class="flex flex-wrap lg:flex-nowrap items-center justify-center gap-3 flex-grow">
+                    <div class="aix-card px-5 py-2.5 flex items-center justify-center text-center min-w-[115px] cursor-pointer" onclick="openModal('tab-category')">
+                        <span class="font-bold text-base whitespace-nowrap">Who's Here</span>
+                    </div>
+                    <div class="aix-card px-5 py-2.5 flex items-center justify-center text-center min-w-[115px] cursor-pointer" onclick="openModal('tab-platforms')">
+                        <span class="font-bold text-base whitespace-nowrap">Top Tools</span>
+                    </div>
+                    <div class="aix-card px-5 py-2.5 flex items-center justify-center text-center min-w-[115px] cursor-pointer" onclick="openModal('tab-models')">
+                        <span class="font-bold text-base whitespace-nowrap">Popular AIs</span>
+                    </div>
+                    <div class="aix-card px-5 py-2.5 flex items-center justify-center text-center min-w-[115px] cursor-pointer" onclick="openModal('tab-use')">
+                        <span class="font-bold text-base whitespace-nowrap">Purpose of AI</span>
+                    </div>
+                    <div class="aix-card px-5 py-2.5 flex items-center justify-center text-center min-w-[115px] cursor-pointer" onclick="openModal('tab-zip')">
+                        <span class="font-bold text-base whitespace-nowrap">Top Locations</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Master Expand Button -->
+            <div class="flex justify-center opacity-0 animate-fade-in-up delay-400">
+                <button onclick="openModal('tab-all-insights')" class="text-xs border border-slate-600 rounded-full px-6 py-2 hover:bg-slate-800 hover:border-[#f56e0e] transition-colors font-bold uppercase tracking-widest text-slate-400 hover:text-white">
+                    Expand All Features
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal Overlay -->
+    <div id="modal-overlay">
+        <div id="modal-container" class="p-6 md:p-10">
+            <button id="close-modal" aria-label="Close modal" onclick="closeModal()">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            
+            <div id="data-loading" class="flex flex-col items-center justify-center w-full h-[300px] text-slate-500">
+                <svg class="animate-spin h-8 w-8 text-[#f56e0e] mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Fetching live insights...</span>
+            </div>
+
+            <div id="data-content" class="hidden">
+                 
+                <!-- All Insights Tab (Expand All) -->
+                <div id="tab-all-insights" class="hidden-content">
+                    <h3 class="text-3xl font-bold mb-6 text-brandAccent flex items-center justify-between">
+                        Live Feed: All Insights
+                    </h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-h-[65vh] overflow-y-auto pr-4 custom-scrollbar">
+                        
+                        <div class="bg-[#0a0d14] p-6 rounded-xl border border-slate-800">
+                            <h4 class="text-xl font-bold mb-4 text-white">Who's Here</h4>
+                            <div class="overflow-x-auto w-full max-h-[300px] custom-scrollbar">
+                                <table class="w-full text-left border-collapse relative">
+                                    <thead class="sticky top-0 bg-[#0a0d14] border-b border-slate-700 w-full z-10">
+                                        <tr>
+                                            <th class="py-2 px-3 font-semibold text-slate-300">Category</th>
+                                            <th class="py-2 px-3 font-semibold text-slate-300 text-right">Businesses</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tableCategoriesAll" class="divide-y divide-slate-800"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="bg-[#0a0d14] p-6 rounded-xl border border-slate-800">
+                            <h4 class="text-xl font-bold mb-4 text-white">Top Tools</h4>
+                            <div class="relative h-[300px] w-full">
+                                <canvas id="chartPlatformsAll"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-[#0a0d14] p-6 rounded-xl border border-slate-800">
+                            <h4 class="text-xl font-bold mb-4 text-white">Popular AIs</h4>
+                            <div class="relative h-[300px] w-full flex justify-center">
+                                <canvas id="chartAiModelsAll"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-[#0a0d14] p-6 rounded-xl border border-slate-800">
+                            <h4 class="text-xl font-bold mb-4 text-white">Purpose of the AI</h4>
+                            <div class="relative h-[300px] w-full">
+                                <canvas id="chartUseCasesAll"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-[#0a0d14] p-6 rounded-xl border border-slate-800 lg:col-span-2">
+                            <h4 class="text-xl font-bold mb-4 text-white">Top Locations (Zip Codes)</h4>
+                            <div class="overflow-x-auto w-full max-h-[300px] custom-scrollbar">
+                                <table class="w-full text-left border-collapse relative">
+                                    <thead class="sticky top-0 bg-[#0a0d14] border-b border-slate-700 w-full z-10">
+                                        <tr>
+                                            <th class="py-2 px-3 font-semibold text-slate-300">Zip Code</th>
+                                            <th class="py-2 px-3 font-semibold text-slate-300 text-right">Count</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tableZipCodesAll" class="divide-y divide-slate-800"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                 
+                <!-- Slideshow Tab -->
+                <div id="tab-slideshow" class="hidden-content">
+                    <h3 class="text-3xl font-bold mb-6 text-brandAccent">Event Visualizer Loop</h3>
+                    <div class="relative w-full bg-[#0a0d14] rounded-xl overflow-hidden border border-slate-800 shadow-[0_0_20px_rgba(245,110,14,0.15)]" style="padding-top: 56.25%;">
+                        <iframe 
+                            id="google-slides-iframe"
+                            src="https://docs.google.com/presentation/d/e/2PACX-1vRTuEkQ6wa0hdssFOJ8U19QnEB2CadF_Vf22Tgx84FQj4XUOM_E1MIYsOkOSClaQ-igJBoryNmb2Hf0/embed?start=true&loop=true&delayms=10000" 
+                            frameborder="0" 
+                            width="100%" 
+                            height="100%" 
+                            allowfullscreen="true" 
+                            mozallowfullscreen="true" 
+                            webkitallowfullscreen="true"
+                            class="absolute top-0 left-0 w-full h-full"
+                            title="AiX Hub Slideshow">
+                        </iframe>
+                    </div>
+                </div>
+                <!-- Category Tab -->
+                <div id="tab-category" class="hidden-content">
+                    <h3 class="text-3xl font-bold mb-6 text-brandAccent">Who's Here</h3>
+                    <div class="overflow-x-auto table-container w-full max-h-[60vh]">
+                        <table class="w-full text-left border-collapse relative">
+                            <thead class="sticky top-0 bg-[#121620] border-b border-slate-700 w-full z-10 shadow-sm">
+                                <tr>
+                                    <th class="py-3 px-4 font-semibold text-slate-300 bg-[#121620]">Category</th>
+                                    <th class="py-3 px-4 font-semibold text-slate-300 w-32 text-right bg-[#121620]">Businesses</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableCategories" class="divide-y divide-slate-800"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Platforms Tab -->
+                <div id="tab-platforms" class="hidden-content">
+                    <h3 class="text-3xl font-bold mb-6 text-brandAccent">Top Tools (% of Businesses)</h3>
+                    <div class="relative h-[60vh] w-full">
+                        <canvas id="chartPlatforms"></canvas>
+                    </div>
+                </div>
+
+                <!-- Models Tab -->
+                <div id="tab-models" class="hidden-content">
+                    <h3 class="text-3xl font-bold mb-6 text-brandAccent">Popular AIs</h3>
+                    <div class="relative h-[60vh] w-full flex justify-center">
+                        <canvas id="chartAiModels"></canvas>
+                    </div>
+                </div>
+
+                <!-- Use Cases Tab -->
+                <div id="tab-use" class="hidden-content">
+                    <h3 class="text-3xl font-bold mb-6 text-brandAccent">Purpose of the AI</h3>
+                    <div class="relative h-[60vh] w-full">
+                        <canvas id="chartUseCases"></canvas>
+                    </div>
+                </div>
+
+                <!-- Zip Tab -->
+                <div id="tab-zip" class="hidden-content">
+                    <h3 class="text-3xl font-bold mb-6 text-brandAccent">Top Locations (Zip Codes)</h3>
+                    <div class="overflow-x-auto table-container w-full max-h-[60vh]">
+                        <table class="w-full text-left border-collapse relative">
+                            <thead class="sticky top-0 bg-[#121620] border-b border-slate-700 w-full z-10 shadow-sm">
+                                <tr>
+                                    <th class="py-3 px-4 font-semibold text-slate-300 bg-[#121620]">Zip Code</th>
+                                    <th class="py-3 px-4 font-semibold text-slate-300 w-32 text-right bg-[#121620]">Count</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableZipCodes" class="divide-y divide-slate-800"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const rawUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRAksF2vrCkmzANN_Zs4z2wOwuqRnaRHiWhb42-jQWeocbNGwqry_xV9qmclClblaWJdyYUCnqb2mVC/pub?gid=1298907124&single=true&output=csv";
+        const sheetUrl = "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(rawUrl);
+        
+        let chartInstances = {};
+        let isDataLoaded = false;
+
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.font.family = '"Plus Jakarta Sans"';
+        Chart.defaults.plugins.tooltip.backgroundColor = '#121620';
+        Chart.defaults.plugins.tooltip.borderColor = '#f56e0e';
+        Chart.defaults.plugins.tooltip.borderWidth = 1;
+        Chart.defaults.plugins.tooltip.padding = 12;
+        Chart.defaults.scale.grid.color = '#1e293b';
+
+        const brandColors = ['#f56e0e', '#3b82f6', '#00ff99', '#a855f7', '#ec4899', '#06b6d4', '#eab308'];
+
+        // Modal Logic
+        function openModal(tabId) {
+            document.getElementById('modal-overlay').classList.add('open');
+            // Hide all tabs
+            document.querySelectorAll('div[id^="tab-"]').forEach(content => {
+                content.classList.remove('active-content');
+                content.classList.add('hidden-content');
+            });
+            // Show target tab
+            const target = document.getElementById(tabId);
+            if (target) {
+                target.classList.remove('hidden-content');
+                target.classList.add('active-content');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('open');
+        }
+
+        // Close on clicking outside the modal content
+        document.getElementById('modal-overlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Escape") {
+                closeModal();
+            }
+        });
+
+        function fetchLiveCSV() {
+            fetch(sheetUrl)
+                .then(res => {
+                    if (!res.ok) throw new Error("Status " + res.status);
+                    return res.text();
+                })
+                .then(text => {
+                    Papa.parse(text, {
+                        header: true, skipEmptyLines: true,
+                        complete: function(results) {
+                            if(results.data.length > 0) {
+                                isDataLoaded = true;
+                                document.getElementById('data-loading').style.display = 'none';
+                                document.getElementById('data-content').classList.remove('hidden');
+                                buildDash(results.data);
+                            }
+                        }
+                    });
+                })
+                .catch(err => {
+                    console.error("Error fetching live data", err);
+                    document.getElementById('data-loading').innerHTML = '<span class="text-red-400">Failed to load data. Waiting for retry...</span>';
+                });
+        }
+
+        function countFrequencies(data, columnName, extractMain = false) {
+            const counts = {};
+            data.forEach(row => {
+                let cell = row[columnName];
+                if (!cell || cell.trim() === "") return;
+                let items = cell.includes('\n') ? cell.split('\n') : [cell];
+                items.forEach(s => {
+                    let cleaned = s.trim();
+                    if (extractMain && cleaned.includes(' (')) cleaned = cleaned.split(' (')[0].trim();
+                    if (cleaned) counts[cleaned] = (counts[cleaned] || 0) + 1;
+                });
+            });
+            return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+        }
+
+        function createChart(ctxId, type, labels, dataPoints, labelName, tFormat = 'number') {
+            const ctx = document.getElementById(ctxId).getContext('2d');
+            let bgColors = dataPoints.map((_, i) => brandColors[i % brandColors.length]);
+
+            if (chartInstances[ctxId]) chartInstances[ctxId].destroy();
+            const isHorizontal = (ctxId === 'chartUseCases');
+
+            chartInstances[ctxId] = new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: labelName, data: dataPoints, backgroundColor: bgColors,
+                        borderWidth: 0, borderRadius: type === 'bar' ? 6 : 0,
+                        hoverOffset: type === 'doughnut' ? 10 : 0
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    indexAxis: isHorizontal ? 'y' : 'x',
+                    plugins: {
+                        legend: { display: type === 'doughnut', position: 'right', labels: { color: '#ffffff' } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(c) { return tFormat === 'percent' ? ` ${c.raw}%` : ` ${c.raw}`; }
+                            }
+                        }
+                    },
+                    scales: type === 'doughnut' ? {} : {
+                        y: { 
+                            beginAtZero: true, 
+                            ticks: { callback: function(val) { return tFormat === 'percent' ? val + '%' : val; } } 
+                        },
+                        x: { ticks: { maxRotation: 45, minRotation: 0 } }
+                    }
+                }
+            });
+        }
+
+        function buildTable(tbodyId, dataArray) {
+            const tbody = document.getElementById(tbodyId);
+            tbody.innerHTML = '';
+            if (dataArray.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="2" class="py-4 text-center">No data</td></tr>`;
+                return;
+            }
+            dataArray.forEach(([key, val]) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/80 transition-colors";
+                tr.innerHTML = `
+                    <td class="py-4 px-4 text-slate-200 border-t border-slate-800">${key}</td>
+                    <td class="py-4 px-4 text-white font-bold text-right border-t border-slate-800 text-lg">${val}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function buildDash(data) {
+            const total = data.length;
+            const keys = Object.keys(data[0]);
+            const colAiModels = keys.find(k => k.toLowerCase().includes('ai model'));
+            const colPlatforms = keys.find(k => k.toLowerCase().includes('digital platforms'));
+            const colUseCases = keys.find(k => k.toLowerCase().includes('how do you use'));
+            const colCategories = keys.find(k => k.toLowerCase().includes('business category'));
+            const colZip = keys.find(k => k.toLowerCase().includes('zip code'));
+
+            if (colCategories) {
+                const dataCat = countFrequencies(data, colCategories, true);
+                buildTable('tableCategories', dataCat);
+                buildTable('tableCategoriesAll', dataCat);
+            }
+            if (colZip) {
+                const dataZip = countFrequencies(data, colZip, false);
+                buildTable('tableZipCodes', dataZip);
+                buildTable('tableZipCodesAll', dataZip);
+            }
+            
+            if (colAiModels) {
+                const aiData = countFrequencies(data, colAiModels, false);
+                createChart('chartAiModels', 'doughnut', aiData.map(d=>d[0]), aiData.map(d=>d[1]), 'Responses');
+                createChart('chartAiModelsAll', 'doughnut', aiData.map(d=>d[0]), aiData.map(d=>d[1]), 'Responses');
+            }
+            if (colPlatforms) {
+                const platData = countFrequencies(data, colPlatforms, false);
+                const percData = platData.map(d => Math.round((d[1] / total) * 100));
+                createChart('chartPlatforms', 'bar', platData.map(d=>d[0]), percData, '% of Businesses', 'percent');
+                createChart('chartPlatformsAll', 'bar', platData.map(d=>d[0]), percData, '% of Businesses', 'percent');
+            }
+            if (colUseCases) {
+                const useData = countFrequencies(data, colUseCases, true);
+                createChart('chartUseCases', 'bar', useData.map(d=>d[0]), useData.map(d=>d[1]), 'Count');
+                createChart('chartUseCasesAll', 'bar', useData.map(d=>d[0]), useData.map(d=>d[1]), 'Count');
+            }
+        }
+
+        // Initialize
+        fetchLiveCSV();
+        setInterval(fetchLiveCSV, 300000); // 5 mins
+
+        // Initialize Particle Background
+        particlesJS("particles-js", {
+            "particles": {
+                "number": { "value": 50, "density": { "enable": true, "value_area": 800 } },
+                "color": { "value": "#f56e0e" },
+                "shape": { "type": "circle" },
+                "opacity": { "value": 0.4, "random": true },
+                "size": { "value": 3, "random": true },
+                "line_linked": {
+                    "enable": true,
+                    "distance": 150,
+                    "color": "#f56e0e",
+                    "opacity": 0.2,
+                    "width": 1
+                },
+                "move": {
+                    "enable": true,
+                    "speed": 1.5,
+                    "direction": "none",
+                    "random": true,
+                    "straight": false,
+                    "out_mode": "out",
+                    "bounce": false
+                }
+            },
+            "interactivity": {
+                "detect_on": "window",
+                "events": {
+                    "onhover": { "enable": true, "mode": "grab" },
+                    "onclick": { "enable": true, "mode": "push" },
+                    "resize": true
+                },
+                "modes": {
+                    "grab": { "distance": 200, "line_linked": { "opacity": 0.6 } },
+                    "push": { "particles_nb": 3 }
+                }
+            },
+            "retina_detect": true
+        });
+    </script>
+</body>
+</html>
