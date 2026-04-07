@@ -157,15 +157,15 @@
         
         <!-- Header/Hero Combined (Balanced Centered Title + Aligned Logo) -->
         <div class="mb-4 opacity-0 animate-fade-in-up max-w-[1000px] mx-auto overflow-hidden">
-            <div class="flex items-center justify-between min-h-[85px]">
+            <div class="flex flex-col md:flex-row items-center justify-center md:justify-between min-h-[85px] gap-4 md:gap-2">
                 <!-- Left Column (Logo Aligned) -->
-                <div class="w-[120px] flex-shrink-0">
-                    <img src="logo.png" alt="AiX HUB Logo" class="h-[85px] w-auto object-contain ml-[30px]">
+                <div class="w-full md:w-[120px] flex justify-center md:justify-start flex-shrink-0">
+                    <img src="logo.png" alt="AiX HUB Logo" class="h-[70px] md:h-[85px] w-auto object-contain md:ml-[30px]">
                 </div>
                 <!-- Center Column (Text perfectly centered to dashboard) -->
                 <div class="flex-grow text-center">
-                    <h2 class="text-2xl md:text-4xl lg:text-5xl font-extrabold mb-1 tracking-tight pr-[120px] whitespace-nowrap">Welcome to Ai Exchange Hub</h2>
-                    <p class="text-lg md:text-xl text-slate-400 font-medium pr-[120px] whitespace-nowrap">Where Ai Technology meets Business, Passion, and Future</p>
+                    <h2 class="text-2xl md:text-3xl lg:text-5xl font-extrabold mb-1 tracking-tight md:pr-[120px] whitespace-normal md:whitespace-nowrap px-4 md:px-0">Welcome to Ai Exchange Hub</h2>
+                    <p class="text-sm md:text-lg lg:text-xl text-slate-400 font-medium md:pr-[120px] whitespace-normal md:whitespace-nowrap px-4 md:px-0">Where Ai Technology meets Business, Passion, and Future</p>
                 </div>
             </div>
         </div>
@@ -196,7 +196,7 @@
             <!-- Main Insight Bar -->
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-[#121620]/50 p-3 rounded-2xl border border-slate-800 mb-3 opacity-0 animate-fade-in-up delay-300">
                 <!-- Branding/Status -->
-                <div class="flex items-center gap-3 flex-shrink-0">
+                <div class="flex items-center justify-center lg:justify-start gap-3 flex-shrink-0">
                     <img src="logo.png" alt="AiX HUB Logo" class="h-[60px] w-auto object-contain">
                     <div class="hidden sm:block">
                         <h3 class="text-xl font-bold tracking-tight">Events Insights</h3>
@@ -210,22 +210,22 @@
                     </div>
                 </div>
 
-                <!-- Navigation Tabs (Single Row) -->
-                <div class="flex flex-wrap lg:flex-nowrap items-center justify-center gap-3 flex-grow">
-                    <div class="aix-card px-5 py-2.5 flex items-center justify-center text-center min-w-[115px] cursor-pointer" onclick="openModal('tab-category')">
-                        <span class="font-bold text-base whitespace-nowrap">Who's Here</span>
+                <!-- Navigation Tabs (Smarter Responsive Layout) -->
+                <div class="grid grid-cols-2 lg:flex lg:flex-nowrap items-center justify-center gap-2 md:gap-3 flex-grow w-full lg:w-auto">
+                    <div class="aix-card px-3 py-2 md:px-5 md:py-2.5 flex items-center justify-center text-center min-w-0 md:min-w-[115px] cursor-pointer" onclick="openModal('tab-category')">
+                        <span class="font-bold text-xs md:text-base whitespace-nowrap">Who's Here</span>
                     </div>
-                    <div class="aix-card px-5 py-2.5 flex items-center justify-center text-center min-w-[115px] cursor-pointer" onclick="openModal('tab-platforms')">
-                        <span class="font-bold text-base whitespace-nowrap">Top Tools</span>
+                    <div class="aix-card px-3 py-2 md:px-5 md:py-2.5 flex items-center justify-center text-center min-w-0 md:min-w-[115px] cursor-pointer" onclick="openModal('tab-platforms')">
+                        <span class="font-bold text-xs md:text-base whitespace-nowrap">Top Tools</span>
                     </div>
-                    <div class="aix-card px-5 py-2.5 flex items-center justify-center text-center min-w-[115px] cursor-pointer" onclick="openModal('tab-models')">
-                        <span class="font-bold text-base whitespace-nowrap">Popular AIs</span>
+                    <div class="aix-card px-3 py-2 md:px-5 md:py-2.5 flex items-center justify-center text-center min-w-0 md:min-w-[115px] cursor-pointer" onclick="openModal('tab-models')">
+                        <span class="font-bold text-xs md:text-base whitespace-nowrap">Popular AIs</span>
                     </div>
-                    <div class="aix-card px-5 py-2.5 flex items-center justify-center text-center min-w-[115px] cursor-pointer" onclick="openModal('tab-use')">
-                        <span class="font-bold text-base whitespace-nowrap">Purpose of AI</span>
+                    <div class="aix-card px-3 py-2 md:px-5 md:py-2.5 flex items-center justify-center text-center min-w-0 md:min-w-[115px] cursor-pointer" onclick="openModal('tab-use')">
+                        <span class="font-bold text-xs md:text-base whitespace-nowrap">Purpose of AI</span>
                     </div>
-                    <div class="aix-card px-5 py-2.5 flex items-center justify-center text-center min-w-[115px] cursor-pointer" onclick="openModal('tab-zip')">
-                        <span class="font-bold text-base whitespace-nowrap">Top Locations</span>
+                    <div class="aix-card px-3 py-2 md:px-5 md:py-2.5 flex items-center justify-center text-center min-w-0 md:min-w-[115px] cursor-pointer col-span-2 lg:col-span-1" onclick="openModal('tab-zip')">
+                        <span class="font-bold text-xs md:text-base whitespace-nowrap">Top Locations</span>
                     </div>
                 </div>
             </div>
